@@ -1,17 +1,16 @@
-// ARQUIVO: migracao.js (Rode uma vez para importar os dados)
+// ARQUIVO: migracao.js
 
+// 1. IMPORTANTE: Essa linha é obrigatória!
 const { Pool } = require('pg');
 
-// Configuração do Banco
+// 2. Configuração para a NUVEM (Neon)
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'saude_anibal',
-    password: '885588', // Sua senha
-    port: 5432,
+    // 👇 COLE A SUA CHAVE GIGANTE DO NEON AQUI DENTRO DAS ASPAS 👇
+    connectionString: 'postgresql://neondb_owner:npg_PnFoD85iCVlH@ep-super-dust-ahz19on1-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    ssl: { rejectUnauthorized: false } // Obrigatório para o Neon
 });
 
-// Dados Originais (Copiados do seu arquivo)
+// Dados Originais
 const gestantesData = [
     { nome: "Alice Antunes dos Santos", dataNascimento: "1975-01-25", dum: "2025-07-01", dpp: "2026-04-08", testeMaezinha: null, vacinaGripe: null, vacinaDtpa: null, vacinaCovid: "3 doses", risco: "Baixo", medicacao: "Não", suplementos: "Sim - Ácido Fólico" },
     { nome: "Aliciane Fatima Chaves Cardoso", dataNascimento: "1998-05-08", dum: "2025-02-02", dpp: "2025-11-09", testeMaezinha: "2025-03-20", vacinaGripe: "2025-04-14", vacinaDtpa: "2025-08-11", vacinaCovid: "4 doses", risco: "Médio", medicacao: "Sim - Metformina", suplementos: "Sim - Ácido Fólico, Ferro" },
@@ -43,15 +42,13 @@ const gestantesData = [
 ];
 
 async function importarDados() {
-    console.log("Iniciando importação...");
+    console.log("Iniciando importação para a NUVEM...");
     
     for (const g of gestantesData) {
-        // Tratamento de dados
         const riscoFormatado = g.risco === "Alto" ? "ALTO RISCO" : (g.risco === "Médio" ? "MÉDIO RISCO" : "BAIXO RISCO");
         const temHiper = g.medicacao.includes("Hidroclorotiazida") || g.medicacao.includes("Atenolol") || g.medicacao.includes("Propranolol");
         const temDiab = g.medicacao.includes("Metformina") || g.medicacao.includes("Insulina") || g.medicacao.includes("Glibenclamida");
         
-        // Insere no banco
         try {
             await pool.query(`
                 INSERT INTO gestantes (
@@ -65,9 +62,9 @@ async function importarDados() {
                 g.dataNascimento, 
                 g.dum, 
                 g.dpp,
-                !!g.vacinaGripe, // Converte texto para true/false
-                !!g.vacinaDtpa,
-                !!g.vacinaCovid,
+                g.vacinaGripe || '', // Envia o TEXTO (ex: "2025-04-14") ou vazio
+                g.vacinaDtpa || '',
+                g.vacinaCovid || '',
                 riscoFormatado,
                 g.medicacao,
                 g.suplementos,
@@ -76,7 +73,7 @@ async function importarDados() {
                 temDiab,
                 (riscoFormatado === "ALTO RISCO" ? 10 : (riscoFormatado === "MÉDIO RISCO" ? 5 : 0))
             ]);
-            console.log(`✅ Importada: ${g.nome}`);
+            console.log(`✅ Importada na Nuvem: ${g.nome}`);
         } catch (err) {
             console.error(`❌ Erro em ${g.nome}:`, err.message);
         }
