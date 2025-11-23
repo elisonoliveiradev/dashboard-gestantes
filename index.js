@@ -1,29 +1,29 @@
-// ARQUIVO: index.js (Com Ordem Alfabética)
+// ARQUIVO: index.js (Pronto para a Nuvem ☁️)
 
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+// O Render define a porta automaticamente, ou usamos 3000 localmente
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
+// Configuração Inteligente do Banco
+// Se tiver uma variável DATABASE_URL (na nuvem), usa ela.
+// Se não, usa os dados locais do seu computador.
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'saude_anibal',
-    password: '885588', 
-    port: 5432,
+    connectionString: process.env.DATABASE_URL || 'postgres://postgres:885588@localhost:5432/saude_anibal',
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-app.get('/', (req, res) => res.send('API Online'));
+app.get('/', (req, res) => res.send('API Online 🚀'));
 
-// 1. BUSCAR (MUDANÇA AQUI: ORDER BY nome ASC)
+// 1. BUSCAR
 app.get('/gestantes', async (req, res) => {
     try {
-        // Agora a lista vem organizada de A a Z
         const result = await pool.query('SELECT * FROM gestantes ORDER BY nome ASC');
         res.json(result.rows);
     } catch (err) {
