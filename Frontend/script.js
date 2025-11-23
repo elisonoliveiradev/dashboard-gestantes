@@ -1,6 +1,6 @@
 // ARQUIVO: script.js (Versão Final: Busca Google + 6 Gráficos + Texto Vacina)
 
-const API_URL = 'http://localhost:3000/gestantes';
+const API_URL = 'https://dashboard-gestantes.onrender.com/gestantes';
 let todosDados = []; 
 let charts = {}; 
 
