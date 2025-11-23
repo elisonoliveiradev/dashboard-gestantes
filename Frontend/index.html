@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Dr. Aníbal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        /* --- BUSCA TIPO GOOGLE --- */
+        .search-wrapper { position: relative; width: 100%; }
+        .suggestions-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: white; border: 1px solid #ddd; border-top: none;
+            border-radius: 0 0 8px 8px; list-style: none; z-index: 1000;
+            max-height: 250px; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none; /* Escondido até digitar */
+        }
+        .suggestions-list li { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .suggestions-list li:hover { background-color: #f0f4ff; color: #667eea; }
+        .suggestion-risk { font-size: 0.8em; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+        /* Botão Flutuante */
+        .btn-add-floating {
+            position: fixed; bottom: 30px; right: 30px;
+            background: #28a745; color: white; width: 60px; height: 60px;
+            border-radius: 50%; font-size: 30px; border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
+            z-index: 1000; transition: transform 0.3s;
+        }
+        .btn-add-floating:hover { transform: scale(1.1); background: #218838; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; cursor: pointer; color: #666; }
+
+        /* Formulário */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-full { grid-column: 1 / -1; }
+        .section-title { color: #667eea; border-bottom: 2px solid #eee; margin: 20px 0 10px 0; font-weight: bold; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+        input[type="text"], input[type="date"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        
+        .checkbox-wrapper { display: flex; align-items: center; margin-bottom: 8px; }
+        .checkbox-wrapper input { width: auto; margin-right: 10px; transform: scale(1.2); }
+        .btn-salvar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border: none; border-radius: 5px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Dashboard Dr. Aníbal</h1>
+            <p class="subtitle">Sistema de Monitoramento Integrado de Saúde Gestacional</p>
+        </header>
+
+        <section class="filters-section">
+            <h2>🔍 Filtros de Pesquisa</h2>
+            <div class="filters-container">
+                <div class="filter-group" style="flex-grow: 2;">
+                    <label>Buscar Paciente (Autocomplete):</label>
+                    <div class="search-wrapper">
+                        <input type="text" id="filterNome" placeholder="Comece a digitar o nome..." autocomplete="off">
+                        <ul id="listaSugestoes" class="suggestions-list"></ul>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Trimestre:</label>
+                    <select id="filterTrimestre">
+                        <option value="">Todos</option>
+                        <option value="1º Trimestre">1º Trimestre</option>
+                        <option value="2º Trimestre">2º Trimestre</option>
+                        <option value="3º Trimestre">3º Trimestre</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Risco:</label>
+                    <select id="filterRisco">
+                        <option value="">Todos</option>
+                        <option value="Alto">Alto Risco</option>
+                        <option value="Médio">Médio Risco</option>
+                        <option value="Baixo">Baixo Risco</option>
+                    </select>
+                </div>
+                <button id="btnLimparFiltros" class="btn-limpar">Limpar</button>
+            </div>
+        </section>
+
+        <section class="kpis-section">
+            <h2>Indicadores-Chave</h2>
+            <div class="kpis-container">
+                <div class="kpi-card"><h3>Total</h3><p class="kpi-value" id="kpiTotal">0</p></div>
+                <div class="kpi-card" style="background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);"><h3>Alto Risco</h3><p class="kpi-value" id="kpiAltoRisco">0</p></div>
+                <div class="kpi-card"><h3>Vacina Gripe</h3><p class="kpi-value" id="kpiGripe">0%</p></div>
+                <div class="kpi-card"><h3>Vacina Dtpa</h3><p class="kpi-value" id="kpiDtpa">0%</p></div>
+                <div class="kpi-card" style="background: #6c757d;"><h3>Idade Média</h3><p class="kpi-value" id="kpiIdadeMedia">0</p></div>
+            </div>
+        </section>
+
+        <section class="charts-section">
+            <h2>Análise Visual</h2>
+            <div class="charts-grid">
+                <div class="chart-container"><h3>Idade</h3><canvas id="chartIdade"></canvas></div>
+                <div class="chart-container"><h3>Trimestre</h3><canvas id="chartTrimestre"></canvas></div>
+                <div class="chart-container"><h3>Gripe</h3><canvas id="chartGripe"></canvas></div>
+                <div class="chart-container"><h3>Dtpa</h3><canvas id="chartDtpa"></canvas></div>
+                <div class="chart-container"><h3>Covid</h3><canvas id="chartCovid"></canvas></div>
+                <div class="chart-container"><h3>Faixa Etária (Radar)</h3><canvas id="chartRadar"></canvas></div>
+            </div>
+        </section>
+
+        <section class="table-section">
+            <h2>Pacientes</h2>
+            <div class="table-container">
+                <table id="tabelaGestantes">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome / Idade</th>
+                            <th>Datas (DUM/DPP)</th>
+                            <th>Risco</th>
+                            <th>Vacinas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <button class="btn-add-floating" onclick="abrirModal()">+</button>
+
+    <div id="modalCadastro" class="modal-overlay">
+        <div class="modal-content">
+            <span class="close-modal" onclick="fecharModal()">&times;</span>
+            <h2 style="color: #667eea;">Nova Gestante</h2>
+            <form id="formCadastro">
+                <div class="section-title">👤 Pessoal</div>
+                <div class="form-grid">
+                    <div class="form-full"><label>Nome:</label><input type="text" id="nome" required></div>
+                    <div><label>Nascimento:</label><input type="date" id="data_nascimento" required onchange="calcularRisco()"></div>
+                    <div><label>CPF:</label><input type="text" id="cpf"></div>
+                    <div class="form-full"><label>Telefone:</label><input type="text" id="telefone"></div>
+                </div>
+                <div class="section-title">🤰 Obstetrícia</div>
+                <div class="form-grid">
+                    <div><label>DUM:</label><input type="date" id="dum" onchange="calcularDPP()"></div>
+                    <div><label>DPP:</label><input type="date" id="dpp"></div>
+                </div>
+                <div class="section-title">💉 Vacinação (Texto/Doses)</div>
+                <div class="form-grid">
+                    <div class="form-full"><label>Gripe:</label><input type="text" id="vacina_gripe" placeholder="Ex: 20/05/2025"></div>
+                    <div class="form-full"><label>Dtpa:</label><input type="text" id="vacina_dtpa" placeholder="Ex: Pendente"></div>
+                    <div class="form-full"><label>Covid:</label><input type="text" id="vacina_covid" placeholder="Ex: 3 doses"></div>
+                </div>
+                <div class="section-title">💊 Tratamento</div>
+                <div class="form-grid">
+                    <div class="form-full"><label>Medicação:</label><input type="text" id="medicacao"></div>
+                    <div class="form-full"><label>Suplementos:</label><input type="text" id="suplementos"></div>
+                    <div class="form-full"><label>Teste Mãezinha:</label><input type="text" id="teste_maezinha"></div>
+                </div>
+                <div class="section-title">⚠️ Risco</div>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 5px;">
+                    <div class="checkbox-wrapper"><input type="checkbox" id="hipertensao" onchange="calcularRisco()"><label>Hipertensão (10 pts)</label></div>
+                    <div class="checkbox-wrapper"><input type="checkbox" id="diabetes" onchange="calcularRisco()"><label>Diabetes (10 pts)</label></div>
+                    <div class="checkbox-wrapper"><input type="checkbox" id="suspeita_infeccao" onchange="calcularRisco()"><label>Dengue/Zika (5 pts)</label></div>
+                    <div class="checkbox-wrapper"><input type="checkbox" id="obesidade" onchange="calcularRisco()"><label>Obesidade (4 pts)</label></div>
+                    <div style="margin-top: 10px; font-weight: bold;"><span id="displayRisco" style="color: green;">Baixo Risco</span></div>
+                </div>
+                <button type="submit" class="btn-salvar">Salvar</button>
+            </form>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
